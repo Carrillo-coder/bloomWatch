@@ -151,7 +151,7 @@ export default function App() {
         </video>
 
         <header className="app-header">
-          <Typography variant="h4">BloomScape Agro</Typography>
+          <Typography variant="h4">Bloom-it</Typography>
         </header>
 
         <main className="main-content">
@@ -205,7 +205,7 @@ export default function App() {
           {/* Panel derecho: información y controles */}
           <section className="right-panel">
             <Box sx={{ p: 2, bgcolor: "#191970", borderRadius: 2 }}>
-              <Typography variant="h6">Tipo de Cultivo: {crop.toUpperCase()}</Typography>
+              <Typography variant="h6">Crop type: {crop.toUpperCase()}</Typography>
             </Box>
 
             {/* Etapa actual con Chip */}

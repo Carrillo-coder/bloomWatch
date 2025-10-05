@@ -5,13 +5,13 @@ const PopupIntro = ({ onClose }) => {
   return (
     <div className="popup-intro-overlay">
       <div className="popup-intro">
-        <h2>Bienvenido a Tick-Tick Bloom</h2>
+        <h2>Welcome to Bloom-it</h2>
         <p>
-          Esta aplicación te ayuda a decidir cuándo sembrar y cosechar tus plantas usando mapas y datos satelitales.<br/>
-          El NDVI es un indicador que muestra la salud y vigor de tus cultivos, ayudándote a tomar mejores decisiones.<br/>
-          ¡No necesitas conocimientos técnicos, solo selecciona tu región y explora los consejos!
+          This application helps you decide when to plant and take care of your crops using maps and satellite data.<br/>
+           NDVI is an indicator that shows the health and vigor of your crops, helping you make better decisions.<br/>
+           You don't need technical knowledge—just select your region and explore the recommendations!
         </p>
-        <button onClick={onClose}>Entendido</button>
+        <button onClick={onClose}>Understood</button>
       </div>
     </div>
   );

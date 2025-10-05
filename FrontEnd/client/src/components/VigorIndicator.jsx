@@ -2,37 +2,37 @@
 import { useEffect, useState } from "react";
 import { Box, Typography, LinearProgress } from "@mui/material";
 
-// Umbrales para la visual de vigor (barra)
+// Thresholds for vigor visual (bar)
 const NDVI_THRESHOLDS = {
   high: 0.6,
   medium: 0.3,
 };
 
-// Visual (no etapa): cómo mostrar el valor NDVI como “Alto/Medio/Bajo”
+// Visual (not stage): how to display the NDVI value as “High/Medium/Low”
 function interpretNDVI(value) {
   if (value >= NDVI_THRESHOLDS.high) {
-    return { level: "Alto", color: "success", description: "Las plantas en este punto se ven muy saludables y vigorosas." };
+    return { level: "High", color: "success", description: "The plants at this point look very healthy and vigorous." };
   }
   if (value >= NDVI_THRESHOLDS.medium) {
-    return { level: "Medio", color: "warning", description: "El vigor es moderado. Se recomienda monitorear." };
+    return { level: "Medium", color: "warning", description: "The vigor is moderate. Monitoring is recommended." };
   }
-  return { level: "Bajo", color: "error", description: "Signos de estrés o poca vegetación. Requiere atención." };
+  return { level: "Low", color: "error", description: "Signs of stress or little vegetation. Requires attention." };
 }
 
-// === Heurística de etapa (actual + predicción) sin mostrar curva ===
+// === Stage heuristic (current + prediction) without showing curve ===
 function analyzeNDVI(series = [], crop = "general", daysAhead = 7) {
   if (!Array.isArray(series) || series.length < 5) {
     return {
-      now:  { status: "Sin datos suficientes", hint: "Aún no hay suficientes observaciones para estimar fase." },
-      next: { status: "Sin datos suficientes", hint: "Reintenta con un rango mayor o diferente punto." },
+      now:  { status: "Not enough data", hint: "Not enough observations yet to estimate phase." },
+      next: { status: "Not enough data", hint: "Try again with a larger range or a different point." },
       meta: { points: series.length, confidence: 0.2 }
     };
   }
 
-  // ordenar por fecha
+  // sort by date
   const s = [...series].sort((a, b) => a.date.localeCompare(b.date));
 
-  // suavizado ventana 3
+  // smoothing window 3
   const smooth = s.map((p, i) => {
     const w = s.slice(Math.max(0, i - 1), Math.min(s.length, i + 2));
     const avg = w.reduce((acc, x) => acc + (x.ndvi ?? 0), 0) / w.length;
@@ -41,7 +41,7 @@ function analyzeNDVI(series = [], crop = "general", daysAhead = 7) {
 
   const last = smooth[smooth.length - 1].ndvi;
 
-  // pendiente reciente (últimos 3–4 pasos ~16d)
+  // recent slope (last 3–4 steps ~16d)
   const recent = smooth.slice(-4);
   const slopes = [];
   for (let i = 1; i < recent.length; i++) {
@@ -49,72 +49,72 @@ function analyzeNDVI(series = [], crop = "general", daysAhead = 7) {
   }
   const slopeRecent = slopes.length ? slopes.reduce((a, b) => a + b, 0) / slopes.length : 0;
 
-  // pico en ventana ~120d
+  // peak in window ~120d
   const cutoffIdx = Math.max(0, smooth.length - Math.ceil(120 / 16));
   const win = smooth.slice(cutoffIdx);
   const peak = win.reduce((best, p) => (p.ndvi > best.ndvi ? p : best), { ndvi: -Infinity });
   const peakNDVI = peak.ndvi > 0 ? peak.ndvi : Math.max(...smooth.map(p => p.ndvi));
 
-  // umbrales
-  const TH_RISE = 0.03;   // subida fuerte por paso (~16d)
-  const TH_NEAR = 0.9;    // cerca del pico
+  // thresholds
+  const TH_RISE = 0.03;   // strong rise per step (~16d)
+  const TH_NEAR = 0.9;    // near the peak
 
   function classify(ndviValue, slopeAvg, peakRef) {
-    if (Math.abs(slopeAvg) < 0.015 && ndviValue >= TH_NEAR * peakRef) return "Floración";
-    if (slopeAvg > TH_RISE)                                          return "Pre-floración";
-    if (ndviValue < TH_NEAR * peakRef && slopeAvg <= 0)              return "Post-floración";
-    return "Vegetación estable";
+    if (Math.abs(slopeAvg) < 0.015 && ndviValue >= TH_NEAR * peakRef) return "Flowering";
+    if (slopeAvg > TH_RISE)                                          return "Pre-flowering";
+    if (ndviValue < TH_NEAR * peakRef && slopeAvg <= 0)              return "Post-flowering";
+    return "Stable vegetation";
   }
 
   const statusNow = classify(last, slopeRecent, peakNDVI);
 
-  // Predicción simple +7 días (interpolando el paso ~16d)
+  // Simple prediction +7 days (interpolating the ~16d step)
   const steps = daysAhead / 16;
   const ndviNext = last + slopeRecent * steps;
   const statusNext = classify(ndviNext, slopeRecent, Math.max(peakNDVI, ndviNext));
 
-  // sugerencias por cultivo
+  // hints by crop
   const HINTS = {
-    manzana: {
-      "Pre-floración": "Subida en curso; prepara colmenas 7–10 días antes del pico.",
-      "Floración": "Cerca del pico; evita prácticas que perjudiquen polinizadores.",
-      "Post-floración": "Tras el pico; monitorea plagas tempranas y vigor vegetativo.",
-      "Vegetación estable": "Sin cambios fuertes; revisa semanalmente."
+    apple: {
+      "Pre-flowering": "Rise in progress; prepare hives 7–10 days before the peak.",
+      "Flowering": "Near the peak; avoid practices that harm pollinators.",
+      "Post-flowering": "After the peak; monitor for early pests and vegetative vigor.",
+      "Stable vegetation": "No major changes; check weekly."
     },
-    nogal: {
-      "Pre-floración": "Subida detectada; riegos ligeros si hay déficit y prepara manejo.",
-      "Floración": "Minimiza acciones que afecten abejas; valida en campo.",
-      "Post-floración": "Entra a manejo vegetativo y cuida estrés hídrico.",
-      "Vegetación estable": "Seguimiento recomendado; sin señales claras aún."
+    walnut: {
+      "Pre-flowering": "Rise detected; light irrigation if there is a deficit and prepare management.",
+      "Flowering": "Minimize actions that affect bees; validate in the field.",
+      "Post-flowering": "Enter vegetative management and watch for water stress.",
+      "Stable vegetation": "Monitoring recommended; no clear signs yet."
     },
-    algodon: {
-      "Pre-floración": "Alinea labores previas al pico; intensifica monitoreo.",
-      "Floración": "Evita aplicaciones que afecten polinizadores; observa retención.",
-      "Post-floración": "Ajusta manejo según vigor observado.",
-      "Vegetación estable": "Monitorea semanalmente hasta ver señales."
+    cotton: {
+      "Pre-flowering": "Align tasks before the peak; intensify monitoring.",
+      "Flowering": "Avoid applications that affect pollinators; observe retention.",
+      "Post-flowering": "Adjust management according to observed vigor.",
+      "Stable vegetation": "Monitor weekly until signs are seen."
     },
-    maiz: {
-      "Pre-floración": "Subida; prepara logística de fertilización/monitoreo.",
-      "Floración": "Minimiza estrés; prioriza observación en campo.",
-      "Post-floración": "Ajusta manejo vegetativo según vigor.",
-      "Vegetación estable": "Sin señales fuertes aún; continúa seguimiento."
+    corn: {
+      "Pre-flowering": "Rise; prepare fertilization/monitoring logistics.",
+      "Flowering": "Minimize stress; prioritize field observation.",
+      "Post-flowering": "Adjust vegetative management according to vigor.",
+      "Stable vegetation": "No strong signs yet; continue monitoring."
     },
     alfalfa: {
-      "Pre-floración": "Subida; prepara corte/monitoreo según manejo local.",
-      "Floración": "Evita prácticas que afecten polinizadores; valida en campo.",
-      "Post-floración": "Planifica manejo posterior a floración.",
-      "Vegetación estable": "Sigue observando; sin cambios notables."
+      "Pre-flowering": "Rise; prepare cutting/monitoring according to local management.",
+      "Flowering": "Avoid practices that affect pollinators; validate in the field.",
+      "Post-flowering": "Plan post-flowering management.",
+      "Stable vegetation": "Keep observing; no notable changes."
     },
     general: {
-      "Pre-floración": "Se observa subida; prepara logística previa al pico.",
-      "Floración": "Cerca del pico; minimiza acciones que afecten polinizadores.",
-      "Post-floración": "Tras el pico; enfoca manejo vegetativo.",
-      "Vegetación estable": "Sin cambios fuertes; sigue observando."
+      "Pre-flowering": "Rise observed; prepare pre-peak logistics.",
+      "Flowering": "Near the peak; minimize actions that affect pollinators.",
+      "Post-flowering": "After the peak; focus on vegetative management.",
+      "Stable vegetation": "No major changes; keep observing."
     }
   };
   const dict = HINTS[crop] || HINTS.general;
 
-  // confianza simple
+  // simple confidence
   const trendStrength = Math.min(1, Math.abs(slopeRecent) / 0.06);
   const nearPeak = Math.min(1, last / (peakNDVI || 1));
   const confidence = Math.max(0.2, 0.3 * (series.length / 24) + 0.4 * trendStrength + 0.3 * nearPeak);
@@ -149,10 +149,10 @@ export default function VigorIndicator({
         setVigor(null);
 
         const qs = new URLSearchParams({ lat: String(lat), lon: String(lon), start, end, product }).toString();
-        const resp = await fetch(`/api/ndvi/point?${qs}`); // usa el proxy de Vite
+        const resp = await fetch(`/api/ndvi/point?${qs}`); // use Vite's proxy
         const json = await resp.json();
 
-        if (!resp.ok) throw new Error(json?.error || "No se pudieron obtener los datos de vigor.");
+        if (!resp.ok) throw new Error(json?.error || "Could not get vigor data.");
         if (cancelled) return;
 
         if (json.warning) setWarning(String(json.warning));
@@ -161,14 +161,14 @@ export default function VigorIndicator({
         if (points.length === 0) {
           setVigor(null);
           onAnalysis?.({
-            now: { status: "Sin datos", hint: "No hay observaciones para este rango." },
-            next: { status: "Sin datos", hint: "Sin observaciones suficientes para predecir." },
+            now: { status: "No data", hint: "There are no observations for this range." },
+            next: { status: "No data", hint: "Not enough observations to predict." },
             meta: { points: 0, confidence: 0 }
           });
           return;
         }
 
-        // valor NDVI más reciente para la barra de vigor
+        // most recent NDVI value for the vigor bar
         const latestPoint = points[points.length - 1];
         const latestNDVI  = latestPoint.ndvi;
         const interpreted = interpretNDVI(latestNDVI);
@@ -179,7 +179,7 @@ export default function VigorIndicator({
           date: latestPoint.date,
         });
 
-        // etapa actual + predicción a 7 días
+        // current stage + 7-day prediction
         const analysis = analyzeNDVI(points, crop, 7);
         onAnalysis?.(analysis);
 
@@ -192,15 +192,15 @@ export default function VigorIndicator({
 
     fetchAndAnalyze();
     return () => { cancelled = true; };
-  // Importante: NO incluimos onAnalysis en deps para evitar repolls
+  // Important: we DO NOT include onAnalysis in deps to avoid repolls
   }, [lat, lon, start, end, product, crop]);
 
-  // Contenedor estable (evita saltos visuales)
+  // Stable container (avoids visual jumps)
   return (
     <Box sx={{ p: 2, bgcolor: "#191970", borderRadius: 2, mt: 2 }}>
-      <Typography variant="h6" gutterBottom>Salud del Cultivo (Vigor)</Typography>
+      <Typography variant="h6" gutterBottom>Crop Health (Vigor)</Typography>
 
-      {loading && <Typography variant="body2">Calculando salud del cultivo…</Typography>}
+      {loading && <Typography variant="body2">Calculating crop health…</Typography>}
 
       {warning && !loading && (
         <Typography variant="caption" sx={{ color: "#ffd166", display: "block", mb: 1 }}>
@@ -214,7 +214,7 @@ export default function VigorIndicator({
 
       {!error && !loading && !vigor && (
         <Typography variant="body2" sx={{ opacity: 0.8 }}>
-          No hay datos de vigor para mostrar.
+          No vigor data to display.
         </Typography>
       )}
 
@@ -225,7 +225,7 @@ export default function VigorIndicator({
               {vigor.level}
             </Typography>
             <Typography variant="body2" sx={{ opacity: 0.9 }}>
-              (Valor: {vigor.value.toFixed(2)} el {vigor.date})
+              (Value: {vigor.value.toFixed(2)} on {vigor.date})
             </Typography>
           </Box>
 

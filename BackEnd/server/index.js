@@ -20,15 +20,15 @@ const APPEEARS_PASS = process.env.APPEEARS_PASS || "";
 let appeearsToken = null;
 let appeearsTokenFetchedAt = 0;
 
-// Login a AppEEARS con HTTP Basic Auth (usuario/contraseña EDL)
+// Login to AppEEARS with HTTP Basic Auth (EDL user/password)
 async function fetchAppeearsToken() {
   if (!APPEEARS_USER || !APPEEARS_PASS) {
-    console.warn("[APPEEARS] Falta APPEEARS_USER/APPEEARS_PASS en .env");
+    console.warn("[APPEEARS] Missing APPEEARS_USER/APPEEARS_PASS in .env");
     return null;
   }
   const resp = await axios.post(
     `${APPEEARS_API}/login`,
-    null, // cuerpo vacío
+    null, // empty body
     {
       auth: { username: APPEEARS_USER, password: APPEEARS_PASS },
       headers: { "Content-Length": 0, Accept: "application/json" },
@@ -36,14 +36,14 @@ async function fetchAppeearsToken() {
     }
   );
   const token = resp?.data?.token;
-  if (!token) throw new Error("No se recibió token de AppEEARS");
+  if (!token) throw new Error("No token received from AppEEARS");
   appeearsToken = token;
   appeearsTokenFetchedAt = Date.now();
-  console.log("[APPEEARS] token obtenido");
+  console.log("[APPEEARS] token obtained");
   return token;
 }
 
-// Devuelve token válido (relogin simple cada ~11h)
+// Returns a valid token (simple relogin every ~11h)
 async function getAppeearsToken() {
   const MAX_AGE_MS = 11 * 60 * 60 * 1000;
   if (!appeearsToken || (Date.now() - appeearsTokenFetchedAt) > MAX_AGE_MS) {
@@ -95,16 +95,16 @@ app.get("/api/health", async (_, res) => {
 });
 
 /* =======================
-   NDVI por punto (AppEEARS)
+   NDVI per point (AppEEARS)
    ======================= */
 let ndviActiveRequests = 0;
-const NDVI_MAX_CONCURRENT = 1;
+const NDVI_MAX_CONCURRENT = 5;
 
 app.get("/api/ndvi/point", async (req, res) => {
   const step = (name, extra = {}) => console.log(`[APPEEARS] ${name}`, extra);
 
   if (ndviActiveRequests >= NDVI_MAX_CONCURRENT) {
-    return res.status(429).json({ error: `Máximo de ${NDVI_MAX_CONCURRENT} peticiones NDVI concurrentes alcanzado. Intenta nuevamente en unos segundos.` });
+    return res.status(429).json({ error: `Maximum of ${NDVI_MAX_CONCURRENT} concurrent NDVI requests reached. Try again in a few seconds.` });
   }
   ndviActiveRequests++;
   try {
@@ -114,32 +114,32 @@ app.get("/api/ndvi/point", async (req, res) => {
     const latN = Number(lat), lonN = Number(lon);
     if (!Number.isFinite(latN) || !Number.isFinite(lonN)) {
       ndviActiveRequests--;
-      return res.status(400).json({ error: "lat/lon inválidos" });
+      return res.status(400).json({ error: "invalid lat/lon" });
     }
     if (!start || !end) {
       ndviActiveRequests--;
-      return res.status(400).json({ error: "start/end requeridos" });
+      return res.status(400).json({ error: "start/end required" });
     }
 
-    // Producto por defecto (puedes pasarlo por query ?product=)
+    // Default product (you can pass it by query ?product=)
     const PRODUCT = userProduct || "MYD13Q1.061";
 
-    // *** Opción 1: capa NDVI fija para MYD13Q1.061 ***
-    // Este nombre viene exactamente como lo expone AppEEARS:
-    // clave "_250m_16_days_NDVI" (con guion bajo inicial)
+    // *** Option 1: fixed NDVI layer for MYD13Q1.061 ***
+    // This name comes exactly as exposed by AppEEARS:
+    // key "_250m_16_days_NDVI" (with initial underscore)
     let NDVI_LAYER = "_250m_16_days_NDVI";
-    // Si cambias de producto en el futuro, tendrás que ajustar el nombre de capa.
+    // If you change the product in the future, you will have to adjust the layer name.
 
     const demo = (mode) => buildDemoSeries(start, end, latN, lonN, mode, PRODUCT);
 
-    // 1) token de AppEEARS
+    // 1) AppEEARS token
     const token = await getAppeearsToken();
     if (!token) {
-      console.warn("[APPEEARS] sin token, devolviendo DEMO");
+      console.warn("[APPEEARS] no token, returning DEMO");
       return res.json(demo("demo"));
     }
 
-    // 2) Fechas y payload (MM-DD-YYYY, coordinates como objetos)
+    // 2) Dates and payload (MM-DD-YYYY, coordinates as objects)
     const startMDY = toMMDDYYYY(start);
     const endMDY   = toMMDDYYYY(end);
 
@@ -148,13 +148,13 @@ app.get("/api/ndvi/point", async (req, res) => {
       task_name: `ndvi_timeseries_${Date.now()}`,
       params: {
         dates: [{ startDate: startMDY, endDate: endMDY }],
-        layers: [{ product: PRODUCT, layer: NDVI_LAYER }],  // ← capa exacta
+        layers: [{ product: PRODUCT, layer: NDVI_LAYER }],  // ← exact layer
         coordinates: [{ latitude: latN, longitude: lonN }],
         output: { format: "csv" }
       }
     };
 
-    // 3) Crear tarea
+    // 3) Create task
     step("POST /task", { product: PRODUCT, layer: NDVI_LAYER });
     const create = await axios.post(`${APPEEARS_API}/task`, taskPayload, {
       headers: {
@@ -165,10 +165,10 @@ app.get("/api/ndvi/point", async (req, res) => {
       timeout: 60000
     });
     const taskId = create?.data?.task_id;
-    if (!taskId) throw new Error("No se obtuvo task_id de AppEEARS");
+    if (!taskId) throw new Error("Could not get task_id from AppEEARS");
     step("task created", { taskId });
 
-    // 4) Poll estado
+    // 4) Poll status
     let status = "pending";
     let tries = 0;
     while (status !== "done" && tries < 60) {
@@ -179,10 +179,10 @@ app.get("/api/ndvi/point", async (req, res) => {
       });
       status = st?.data?.status || status;
       step("status", { status, tries });
-      if (status === "failed") throw new Error("Tarea AppEEARS falló");
+      if (status === "failed") throw new Error("AppEEARS task failed");
       tries++;
     }
-    if (status !== "done") throw new Error("Timeout esperando AppEEARS");
+    if (status !== "done") throw new Error("Timeout waiting for AppEEARS");
 
     // 5) Bundle → CSV
     step("GET /bundle/:taskId");
@@ -192,7 +192,7 @@ app.get("/api/ndvi/point", async (req, res) => {
     const files = bundle?.data?.files || [];
     const csvFile = files.find((f) => /csv$/i.test(f.file_name));
     step("bundle files", { count: files.length, csv: !!csvFile });
-    if (!csvFile) throw new Error("No se encontró CSV en bundle");
+    if (!csvFile) throw new Error("CSV not found in bundle");
 
     step("GET /bundle/:taskId/:file_id");
     const csvResp = await axios.get(`${APPEEARS_API}/bundle/${taskId}/${csvFile.file_id}`, {
@@ -201,7 +201,7 @@ app.get("/api/ndvi/point", async (req, res) => {
       timeout: 120000
     });
 
-    // 6) Parsear CSV (Date + NDVI)
+    // 6) Parse CSV (Date + NDVI)
     const text = String(csvResp.data);
     const lines = text.split(/\r?\n/).filter(Boolean);
     const header = lines[0].split(",").map((s) => s.trim().toLowerCase());
@@ -228,7 +228,7 @@ app.get("/api/ndvi/point", async (req, res) => {
     const data = err?.response?.data;
     console.error("AppEEARS error", status, data);
 
-    // Mantén la app viva con demo si hay 401/403/400
+    // Keep the app alive with demo if there is 401/403/400
     if (status === 401 || status === 403 || status === 400) {
       const { lat, lon, start, end } = req.query;
       const productUsed = (req.query.product || "").toString().trim() || "MYD13Q1.061";
@@ -236,7 +236,7 @@ app.get("/api/ndvi/point", async (req, res) => {
       ndviActiveRequests--;
       return res.json({
         ...buildDemoSeries(start, end, latN, lonN, "fallback_demo", productUsed),
-        warning: `AppEEARS ${status}: ${data?.message || "verifica EULA/capa/fechas"}`,
+        warning: `AppEEARS ${status}: ${data?.message || "check EULA/layer/dates"}`,
         appeearsError: data || null
       });
     }
@@ -249,7 +249,7 @@ app.get("/api/ndvi/point", async (req, res) => {
 });
 
 /* =======================
-   Arranque
+   Startup
    ======================= */
 const PORT = process.env.PORT || 4000;
 const HOST = process.env.HOST || "0.0.0.0";
@@ -260,9 +260,9 @@ app.listen(PORT, HOST, async () => {
     try {
       await fetchAppeearsToken();
     } catch (e) {
-      console.error("[APPEEARS] No se pudo iniciar sesión al arranque:", e?.response?.status, e?.message);
+      console.error("[APPEEARS] Could not log in at startup:", e?.response?.status, e?.message);
     }
   } else {
-    console.warn("[APPEEARS] Sin APPEEARS_USER/APPEEARS_PASS configurados");
+    console.warn("[APPEEARS] No APPEEARS_USER/APPEEARS_PASS configured");
   }
 });
