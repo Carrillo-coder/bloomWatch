@@ -49,17 +49,17 @@ const darkTheme = createTheme({
 });
 
 const REGIONS = [
-  "Delicias (nogal/alfalfa)",
-  "Cuauhtémoc (manzana)",
-  "Valle de Juárez (maíz/algodón)",
+  "Delicias (walnut/alfalfa)",
+  "Cuauhtémoc (apple)",
+  "Valle de Juárez (corn/cotton)",
   "Camargo",
 ];
 
 const REGION_CROP_MAP = {
-  "Delicias (nogal/alfalfa)": "nogal",
-  "Cuauhtémoc (manzana)": "manzana",
-  "Valle de Juárez (maíz/algodón)": "algodon",
-  Camargo: "nogal",
+  "Delicias (walnut/alfalfa)": "walnut",
+  "Cuauhtémoc (apple)": "apple",
+  "Valle de Juárez (corn/cotton)": "cotton",
+  Camargo: "walnut",
 };
 
 // Chip visual según etapa
@@ -184,10 +184,11 @@ export default function App() {
             {!clickedPoint ? (
               <Box sx={{ p: 2, bgcolor: "#191970", borderRadius: 2, height: "100%" }}>
                 <Typography variant="h6" gutterBottom>
-                  Análisis de Vigor
+                  Vigor Analysis
                 </Typography>
                 <Typography variant="body2" sx={{ opacity: 0.8 }}>
-                  Toca un punto en el mapa para analizar el vigor del cultivo en esa ubicación.
+                  Select a point on the map to see the crop health analysis based on NDVI
+                  data.
                 </Typography>
               </Box>
             ) : (
@@ -214,11 +215,11 @@ export default function App() {
                 variant="h6"
                 sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}
               >
-                Etapa actual:
+                Current Stage:
                 <Chip {...stageChipProps(analysis?.now?.status)} size="small" />
               </Typography>
               <Typography variant="body2" sx={{ opacity: 0.9 }}>
-                {analysis?.now?.hint ?? "Selecciona un punto en el mapa."}
+                {analysis?.now?.hint ?? "Choose a point on the map to see the current stage."}
               </Typography>
             </Box>
 
@@ -228,19 +229,19 @@ export default function App() {
                 variant="h6"
                 sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}
               >
-                Predicción (+7 días):
+                Prediction (+7 days):
                 <Chip {...stageChipProps(analysis?.next?.status)} size="small" />
               </Typography>
               <Typography variant="body2" sx={{ opacity: 0.9 }}>
-                {analysis?.next?.hint ?? "Aún sin predicción."}
+                {analysis?.next?.hint ?? "No prediction available."}
               </Typography>
               <Typography variant="caption" sx={{ opacity: 0.7, display: "block", mt: 1 }}>
-                Confianza:{" "}
+                confidence:{" "}
                 {analysis?.meta?.confidence != null
                   ? Math.round(analysis.meta.confidence * 100)
                   : 0}
                 %
-                {" · "}Observaciones usadas: {analysis?.meta?.points ?? 0}
+                {" · "}observations used: {analysis?.meta?.points ?? 0}
               </Typography>
             </Box>
 
@@ -248,7 +249,7 @@ export default function App() {
             <div className="control-box">
               <TextField
                 select
-                label="Zona Agrícola"
+                label="Agricultural Region"
                 value={region}
                 onChange={handleRegionChange}
               >
@@ -261,7 +262,7 @@ export default function App() {
 
               <TextField
                 select
-                label="Tipo de Cultivo"
+                label="Crop Type"
                 value={crop}
                 onChange={handleCropChange}
                 disabled={linkCropToRegion}
@@ -287,11 +288,11 @@ export default function App() {
                     sx={{ color: "rgba(255, 255, 255, 0.7)", "&.Mui-checked": { color: "#9400d3" } }}
                   />
                 }
-                label="Sugerir cultivo según zona"
+                label="Sugest crop type based on the region"
               />
 
               <Button variant="outlined" component="label">
-                Cargar CSV de Campo
+                Load CSV (GLOBE)
                 <input hidden type="file" accept=".csv" onChange={handleCSV} />
               </Button>
             </div>

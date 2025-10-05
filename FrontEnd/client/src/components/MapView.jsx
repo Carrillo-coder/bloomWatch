@@ -25,9 +25,9 @@ L.Marker.prototype.options.icon = DefaultIcon;
 
 // Centroides rápidos de zonas agrícolas en Chihuahua (puedes editar)
 const REGIONS = {
-  "Delicias (nogal/alfalfa)": { lat: 28.190, lng: -105.470, zoom: 9 },
-  "Cuauhtémoc (manzana)": { lat: 28.407, lng: -106.865, zoom: 9 },
-  "Valle de Juárez (maíz/algodón)": { lat: 31.614, lng: -106.135, zoom: 9 },
+  "Delicias (walnut/alfalfa)": { lat: 28.190, lng: -105.470, zoom: 9 },
+  "Cuauhtémoc (apples)": { lat: 28.407, lng: -106.865, zoom: 9 },
+  "Valle de Juárez (corn/cotton)": { lat: 31.614, lng: -106.135, zoom: 9 },
   Camargo: { lat: 27.666, lng: -105.170, zoom: 10 },
 };
 
