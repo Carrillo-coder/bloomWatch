@@ -98,7 +98,7 @@ app.get("/api/health", async (_, res) => {
    NDVI por punto (AppEEARS)
    ======================= */
 let ndviActiveRequests = 0;
-const NDVI_MAX_CONCURRENT = 5;
+const NDVI_MAX_CONCURRENT = 1;
 
 app.get("/api/ndvi/point", async (req, res) => {
   const step = (name, extra = {}) => console.log(`[APPEEARS] ${name}`, extra);

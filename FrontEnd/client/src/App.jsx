@@ -1,10 +1,9 @@
 // client/src/App.jsx
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import MapView from "./components/MapView";
 import PopupIntro from "./components/PopupIntro";
-import { IconButton } from "@mui/material";
-import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 import VigorIndicator from "./components/VigorIndicator";
+
 import {
   Box,
   Typography,
@@ -14,11 +13,15 @@ import {
   Button,
   Checkbox,
   FormControlLabel,
+  IconButton,
+  Chip,
 } from "@mui/material";
+import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import { ThemeProvider, createTheme } from "@mui/material/styles";
 import dayjs from "dayjs";
-import { estimateBloomStatus } from "./lib/heuristics";
-import { parseGlobeCSV } from "./lib/csvParser";
+// Ya no usamos estimateBloomStatus basado en fecha
+// import { estimateBloomStatus } from "./lib/heuristics";
+import { parseGlobeCSV } from "./lib/csvParser"; // Ajusta si tu archivo se llama distinto (csvParsear.js)
 import "./App.css";
 
 const darkTheme = createTheme({
@@ -26,10 +29,9 @@ const darkTheme = createTheme({
     mode: "dark",
     primary: { main: "#9400d3" },
     background: { paper: "rgba(40, 40, 50, 0.8)" },
-    // Colores para el indicador de vigor
-    success: { main: "#2e7d32" }, // Verde
-    warning: { main: "#ed6c02" }, // Ámbar
-    error: { main: "#d32f2f" },   // Rojo
+    success: { main: "#2e7d32" },
+    warning: { main: "#ed6c02" },
+    error: { main: "#d32f2f" },
   },
   components: {
     MuiTextField: {
@@ -60,6 +62,29 @@ const REGION_CROP_MAP = {
   Camargo: "nogal",
 };
 
+// Chip visual según etapa
+const stageChipProps = (status) => {
+  switch ((status || "").toLowerCase()) {
+    case "pre-floración":
+    case "prefloración":
+    case "pre floración":
+      return { label: "Pre-floración", color: "warning", variant: "filled" };
+    case "floración":
+      return { label: "Floración", color: "success", variant: "filled" };
+    case "post-floración":
+    case "postfloración":
+    case "post floración":
+      return { label: "Post-floración", color: "error", variant: "filled" };
+    case "vegetación estable":
+      return { label: "Estable", color: "default", variant: "filled" };
+    case "sin datos":
+    case "sin datos suficientes":
+      return { label: "Sin datos", color: "default", variant: "outlined" };
+    default:
+      return { label: status || "—", color: "default", variant: "outlined" };
+  }
+};
+
 export default function App() {
   // ===== Estado principal =====
   const [region, setRegion] = useState(REGIONS[2]);
@@ -71,16 +96,19 @@ export default function App() {
   // Punto clicado en el mapa
   const [clickedPoint, setClickedPoint] = useState(null); // { lat, lon }
 
-  // Estado para mostrar el popup
+  // Popup de ayuda
   const [showIntro, setShowIntro] = useState(true);
 
-  // Fechas para la foto satelital y la serie de datos
+  // Resultado del análisis (actual + predicción) que envía VigorIndicator
+  const [analysis, setAnalysis] = useState(null);
+
+  // Fechas para la foto satelital y la serie NDVI (visual vs cálculo)
   const dateISO = dayjs().subtract(daysBack, "day").format("YYYY-MM-DD");
   const startSeries = dayjs().subtract(daysBack, "day").format("YYYY-MM-DD");
   const endSeries = dayjs().format("YYYY-MM-DD");
 
-  // Estimación de la etapa del cultivo
-  const bloomEstimation = estimateBloomStatus(dateISO, crop);
+  // Mantener estable la función que recibe el análisis (evita repolls)
+  const handleAnalysis = useCallback((a) => setAnalysis(a), []);
 
   // ===== Handlers =====
   const handleRegionChange = (event) => {
@@ -107,6 +135,7 @@ export default function App() {
   return (
     <ThemeProvider theme={darkTheme}>
       {showIntro && <PopupIntro onClose={() => setShowIntro(false)} />}
+
       <div className="app-container">
         <IconButton
           aria-label="Ayuda"
@@ -115,6 +144,7 @@ export default function App() {
         >
           <HelpOutlineIcon style={{ color: "#388e3c", fontSize: 32 }} />
         </IconButton>
+
         <video autoPlay loop muted className="background-video">
           <source src="/videos/earth-bg.mp4" type="video/mp4" />
           Tu navegador no soporta videos.
@@ -149,10 +179,10 @@ export default function App() {
             </div>
           </section>
 
-          {/* Panel central: análisis de vigor */}
+          {/* Panel central: análisis de vigor (NDVI real, sin curva) */}
           <section className="middle-panel">
             {!clickedPoint ? (
-              <Box sx={{ p: 2, bgcolor: "#191970", borderRadius: 2, height: '100%' }}>
+              <Box sx={{ p: 2, bgcolor: "#191970", borderRadius: 2, height: "100%" }}>
                 <Typography variant="h6" gutterBottom>
                   Análisis de Vigor
                 </Typography>
@@ -166,6 +196,8 @@ export default function App() {
                 lon={clickedPoint.lon}
                 start={startSeries}
                 end={endSeries}
+                crop={crop}
+                onAnalysis={handleAnalysis} // función estable
               />
             )}
           </section>
@@ -176,15 +208,40 @@ export default function App() {
               <Typography variant="h6">Tipo de Cultivo: {crop.toUpperCase()}</Typography>
             </Box>
 
+            {/* Etapa actual con Chip */}
             <Box sx={{ p: 2, bgcolor: "#191970", borderRadius: 2 }}>
-              <Typography variant="h6">
-                Etapa del Cultivo: {bloomEstimation.status}
+              <Typography
+                variant="h6"
+                sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}
+              >
+                Etapa actual:
+                <Chip {...stageChipProps(analysis?.now?.status)} size="small" />
+              </Typography>
+              <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                {analysis?.now?.hint ?? "Selecciona un punto en el mapa."}
               </Typography>
             </Box>
 
+            {/* Predicción +7 días con Chip */}
             <Box sx={{ p: 2, bgcolor: "#191970", borderRadius: 2 }}>
-              <Typography variant="h6">Recomendación:</Typography>
-              <Typography variant="body1">{bloomEstimation.hint}</Typography>
+              <Typography
+                variant="h6"
+                sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}
+              >
+                Predicción (+7 días):
+                <Chip {...stageChipProps(analysis?.next?.status)} size="small" />
+              </Typography>
+              <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                {analysis?.next?.hint ?? "Aún sin predicción."}
+              </Typography>
+              <Typography variant="caption" sx={{ opacity: 0.7, display: "block", mt: 1 }}>
+                Confianza:{" "}
+                {analysis?.meta?.confidence != null
+                  ? Math.round(analysis.meta.confidence * 100)
+                  : 0}
+                %
+                {" · "}Observaciones usadas: {analysis?.meta?.points ?? 0}
+              </Typography>
             </Box>
 
             {/* Controles */}
@@ -227,10 +284,7 @@ export default function App() {
                   <Checkbox
                     checked={linkCropToRegion}
                     onChange={(e) => setLinkCropToRegion(e.target.checked)}
-                    sx={{
-                      color: "rgba(255, 255, 255, 0.7)",
-                      "&.Mui-checked": { color: "#9400d3" },
-                    }}
+                    sx={{ color: "rgba(255, 255, 255, 0.7)", "&.Mui-checked": { color: "#9400d3" } }}
                   />
                 }
                 label="Sugerir cultivo según zona"
