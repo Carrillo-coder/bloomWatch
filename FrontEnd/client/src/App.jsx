@@ -90,8 +90,9 @@ export default function App() {
   const [region, setRegion] = useState(REGIONS[2]);
   const [daysBack, setDaysBack] = useState(180);
   const [globePoints, setGlobePoints] = useState([]);
-  const [crop, setCrop] = useState("manzana");
+  const [crop, setCrop] = useState("apple");
   const [linkCropToRegion, setLinkCropToRegion] = useState(true);
+  const [mapCenter, setMapCenter] = useState(null); // Estado para manejar el centro del mapa
 
   // Punto clicado en el mapa
   const [clickedPoint, setClickedPoint] = useState(null); // { lat, lon }
@@ -140,7 +141,7 @@ export default function App() {
         <IconButton
           aria-label="Ayuda"
           onClick={() => setShowIntro(true)}
-          style={{ position: "fixed", top: 18, right: 18, zIndex: 10000, background: "#fff" }}
+          style={{ position: "fixed", top: 10, right: 18, zIndex: 10000, background: "#fff" }}
         >
           <HelpOutlineIcon style={{ color: "#388e3c", fontSize: 32 }} />
         </IconButton>
@@ -162,6 +163,7 @@ export default function App() {
               dateISO={dateISO}
               globePoints={globePoints}
               onMapClick={(lat, lon) => setClickedPoint({ lat, lon })}
+              mapCenter={mapCenter} // Pasar el centro del mapa al componente
             />
 
             <div className="date-slider-container">
@@ -294,6 +296,15 @@ export default function App() {
               <Button variant="outlined" component="label">
                 Load CSV (GLOBE)
                 <input hidden type="file" accept=".csv" onChange={handleCSV} />
+              </Button>
+
+              <Button
+                variant="contained"
+                color="primary"
+                style={{ marginTop: "10px" }}
+                onClick={() => setMapCenter({ lat: 28.674, lng: -106.079, zoom: 12 })}
+              >
+                Use my coordinates
               </Button>
             </div>
           </section>

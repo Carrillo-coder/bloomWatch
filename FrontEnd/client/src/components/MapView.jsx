@@ -26,7 +26,7 @@ L.Marker.prototype.options.icon = DefaultIcon;
 // Centroides rápidos de zonas agrícolas en Chihuahua (puedes editar)
 const REGIONS = {
   "Delicias (walnut/alfalfa)": { lat: 28.190, lng: -105.470, zoom: 9 },
-  "Cuauhtémoc (apples)": { lat: 28.407, lng: -106.865, zoom: 9 },
+  "Cuauhtémoc (apple)": { lat: 28.407, lng: -106.865, zoom: 9 },
   "Valle de Juárez (corn/cotton)": { lat: 31.614, lng: -106.135, zoom: 9 },
   Camargo: { lat: 27.666, lng: -105.170, zoom: 10 },
 };
@@ -55,6 +55,7 @@ export default function MapView({
   dateISO,
   globePoints = [],
   onMapClick, // NUEVO: callback opcional
+  mapCenter,
 }) {
   // Fecha en formato YYYY-MM-DD para GIBS Time
   const gibsDate = useMemo(() => dayjs(dateISO).format("YYYY-MM-DD"), [dateISO]);
@@ -73,6 +74,13 @@ export default function MapView({
     setClicked({ lat, lon });
     onMapClick?.(lat, lon);
   };
+
+  // Nuevo: efecto para centrar el mapa según el prop mapCenter
+  useEffect(() => {
+    if (mapCenter) {
+      setClicked(null); // Opcional: limpiar el marcador al cambiar el centro del mapa
+    }
+  }, [mapCenter]);
 
   return (
     <MapContainer
