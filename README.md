@@ -1,62 +1,62 @@
 # BloomWatch
 
-BloomWatch es una aplicación diseñada para ayudar a los agricultores a monitorear la salud de sus cultivos utilizando datos satelitales y análisis de vigor.
+BloomWatch is an application designed to help farmers monitor the health of their crops using satellite data and vigor analysis.
 
-## Prerrequisitos
+## Prerequisites
 
-Asegúrate de tener Node.js y npm instalados en tu sistema.
+Make sure you have Node.js and npm installed on your system.
 
-## Instalación
+## Installation
 
-Sigue estos pasos para configurar el entorno de desarrollo.
+Follow these steps to set up the development environment.
 
-### 1. Clonar el Repositorio
+### 1. Clone the Repository
 
 ```bash
-git clone <URL_DEL_REPOSITORIO>
+git clone <REPOSITORY_URL>
 cd bloomWatch
 ```
 
-### 2. Configurar el Back-End
+### 2. Set up the Back-End
 
-Navega al directorio del servidor e instala las dependencias.
+Navigate to the server directory and install the dependencies.
 
 ```bash
 cd BackEnd/server
 npm install
 ```
 
-### 3. Configurar el Front-End
+### 3. Set up the Front-End
 
-Navega al directorio del cliente e instala las dependencias.
+Navigate to the client directory and install the dependencies.
 
 ```bash
 cd ../../FrontEnd/client
 npm install
 ```
 
-## Cómo Ejecutar la Aplicación
+## How to Run the Application
 
-Para ejecutar la aplicación, necesitarás iniciar tanto el back-end como el front-end en terminales separadas.
+To run the application, you will need to start both the back-end and the front-end in separate terminals.
 
-### Iniciar el Servidor Back-End
+### Start the Back-End Server
 
-En una terminal, navega al directorio del servidor y ejecuta:
+In a terminal, navigate to the server directory and run:
 
 ```bash
 cd BackEnd/server
 npm run dev
 ```
 
-El servidor se iniciará en modo de desarrollo y se reiniciará automáticamente si se detectan cambios en los archivos.
+The server will start in development mode and will automatically restart if file changes are detected.
 
-### Iniciar la Aplicación Front-End
+### Start the Front-End Application
 
-En otra terminal, navega al directorio del cliente y ejecuta:
+In another terminal, navigate to the client directory and run:
 
 ```bash
 cd FrontEnd/client
 npm run dev
 ```
 
-La aplicación de React se iniciará y debería abrirse automáticamente en tu navegador web.
+The React application will start and should automatically open in your web browser.
